@@ -1,8 +1,10 @@
-﻿using MeetingRoomManagerLUIS.Models;
+﻿using AdaptiveCards;
+using MeetingRoomManagerLUIS.Models;
 using Microsoft.Bot.Builder.Dialogs;
 using Microsoft.Bot.Builder.FormFlow;
 using Microsoft.Bot.Builder.Luis;
 using Microsoft.Bot.Builder.Luis.Models;
+using Microsoft.Bot.Connector;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -116,11 +118,42 @@ namespace MeetingRoomManagerLUIS.Dialogs
 
             if (scheduleInfo != null)
             {
-                await context.PostAsync("Thanks for submitting. Below are the details are under process...");
-                await context.PostAsync($"Employee Id: {scheduleInfo.EmployeeId}" +
-                    $"{Environment.NewLine}Start: {scheduleInfo.Start} " +
-                    $"{Environment.NewLine}End: {scheduleInfo.End} " +
-                    $"{Environment.NewLine}Subject: {scheduleInfo.Subject}");
+                //await context.PostAsync("Thanks for submitting. Below are the details are under process...");
+                //await context.PostAsync($"Employee Id: {scheduleInfo.EmployeeId}" +
+                //    $"{Environment.NewLine}Start: {scheduleInfo.Start} " +
+                //    $"{Environment.NewLine}End: {scheduleInfo.End} " +
+                //    $"{Environment.NewLine}Subject: {scheduleInfo.Subject}");
+
+                #region Adaptive Card to get rich output
+                IMessageActivity message = context.MakeMessage();
+                message.Attachments = new List<Attachment>();
+
+                AdaptiveCard card = new AdaptiveCard();
+                card.Body.Add(new TextBlock()
+                {
+                    Text = "Thanks for submitting...",
+                    Wrap = true,
+                    Size = TextSize.ExtraLarge,
+                    Weight = TextWeight.Bolder
+                });
+
+                card.Body.Add(new TextBlock()
+                {
+                    Text = "Below are the details are under process...",
+                    Wrap = true,
+                    Size = TextSize.Large,
+                    Weight = TextWeight.Bolder
+                });
+
+                card.Body.Add(new TextBlock() { Text = $"Employee Id: {scheduleInfo.EmployeeId}", Weight = TextWeight.Normal });
+                card.Body.Add(new TextBlock() { Text = $"Subject: {scheduleInfo.Subject}", Weight = TextWeight.Normal });
+                card.Body.Add(new TextBlock() { Text = $"Location: {scheduleInfo.Location}", Weight = TextWeight.Normal });
+                card.Body.Add(new TextBlock() { Text = $"Start: {scheduleInfo.Start.ToString("dd-MMM-yyyy hh:mm tt")}", Weight = TextWeight.Normal });
+                card.Body.Add(new TextBlock() { Text = $"End: {scheduleInfo.End.ToString("dd-MMM-yyyy hh:mm tt")}", Weight = TextWeight.Normal });
+
+                message.Attachments.Add(new Attachment() { ContentType = AdaptiveCard.ContentType, Content = card }); 
+                #endregion
+                await context.PostAsync(message);
             }
             else
             {
