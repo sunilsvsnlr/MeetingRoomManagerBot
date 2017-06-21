@@ -86,7 +86,7 @@ namespace MeetingRoomManagerLUIS.Dialogs
             else
             {
                 await context.PostAsync("I'm sorry. I didn't understand you.");
-                context.Wait(MessageReceived);
+                context.Done<ScheduleInformation>(new ScheduleInformation());
             }
         }
 
@@ -113,17 +113,11 @@ namespace MeetingRoomManagerLUIS.Dialogs
             catch (OperationCanceledException)
             {
                 await context.PostAsync("You cancelled the form.");
-                return;
+                context.Done<ScheduleInformation>(new ScheduleInformation());
             }
 
             if (scheduleInfo != null)
             {
-                //await context.PostAsync("Thanks for submitting. Below are the details are under process...");
-                //await context.PostAsync($"Employee Id: {scheduleInfo.EmployeeId}" +
-                //    $"{Environment.NewLine}Start: {scheduleInfo.Start} " +
-                //    $"{Environment.NewLine}End: {scheduleInfo.End} " +
-                //    $"{Environment.NewLine}Subject: {scheduleInfo.Subject}");
-
                 #region Adaptive Card to get rich output
                 IMessageActivity message = context.MakeMessage();
                 message.Attachments = new List<Attachment>();
@@ -155,11 +149,8 @@ namespace MeetingRoomManagerLUIS.Dialogs
                 #endregion
                 await context.PostAsync(message);
             }
-            else
-            {
-                await context.PostAsync("Empty Schedule form response.");
-            }
-            context.Wait(MessageReceived);
+            //context.Wait(MessageReceived);
+            context.Done<ScheduleInformation>(scheduleInfo);
         }
     }
 }
