@@ -112,7 +112,7 @@ namespace MeetingRoomManagerLUIS.Dialogs
             }
             catch (OperationCanceledException)
             {
-                await context.PostAsync("You cancelled the form.");
+                await context.PostAsync("Form cancelled.");
                 context.Done<ScheduleInformation>(new ScheduleInformation());
             }
 
