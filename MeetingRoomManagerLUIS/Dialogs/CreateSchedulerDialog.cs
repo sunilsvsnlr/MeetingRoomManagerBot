@@ -56,7 +56,8 @@ namespace MeetingRoomManagerLUIS.Dialogs
                             if (((Newtonsoft.Json.Linq.JArray)c.Resolution.Values.FirstOrDefault()).FirstOrDefault().SelectToken("value") != null)
                             {
                                 scheduleInfo.Start = (DateTime)((Newtonsoft.Json.Linq.JArray)c.Resolution.Values.FirstOrDefault()).FirstOrDefault().SelectToken("value");
-                                entityRecommendation.Add(new EntityRecommendation() { Type = "Start", Entity = scheduleInfo.Start.ToString() });
+                                entityRecommendation.Add(new EntityRecommendation() { Type = c.Type, Entity = scheduleInfo.Start.ToString() });
+                                //entityRecommendation.Add(new EntityRecommendation() { Type = "Start", Entity = scheduleInfo.Start.ToString() });
                             }
                             break;
                         case "builtin.datetimeV2.duration":
@@ -73,10 +74,10 @@ namespace MeetingRoomManagerLUIS.Dialogs
 
                 if (duration > 0)
                 {
-                    scheduleInfo.Start = TimeZone.CurrentTimeZone.ToLocalTime((scheduleInfo.Start == DateTime.MinValue) ? DateTime.Now : scheduleInfo.Start);
+                    scheduleInfo.Start = TimeZone.CurrentTimeZone.ToLocalTime(scheduleInfo.Start == DateTime.MinValue ? DateTime.Now : scheduleInfo.Start);
                     AddOrUpdateStartEntity(entityRecommendation, scheduleInfo);
                     scheduleInfo.End = TimeZone.CurrentTimeZone.ToLocalTime(duration > 0 ? scheduleInfo.Start.AddSeconds(duration) : scheduleInfo.End);
-                    entityRecommendation.Add(new EntityRecommendation() { Type = "End", Entity = scheduleInfo.End.ToString() });
+                    //entityRecommendation.Add(new EntityRecommendation() { Type = "End", Entity = scheduleInfo.End.ToString() });
                 }
 
 
@@ -110,8 +111,9 @@ namespace MeetingRoomManagerLUIS.Dialogs
             {
                 scheduleInfo = await result;
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex)
             {
+                await context.PostAsync(ex.Message);
                 await context.PostAsync("Form cancelled.");
                 context.Done<ScheduleInformation>(new ScheduleInformation());
             }
@@ -122,30 +124,47 @@ namespace MeetingRoomManagerLUIS.Dialogs
                 IMessageActivity message = context.MakeMessage();
                 message.Attachments = new List<Attachment>();
 
-                AdaptiveCard card = new AdaptiveCard();
-                card.Body.Add(new TextBlock()
+                #region Skype wont support Adaptive Cards - For Ref: https://github.com/Microsoft/BotBuilder/issues/2803
+
+                //AdaptiveCard card = new AdaptiveCard();
+                //card.Body.Add(new TextBlock()
+                //{
+                //    Text = "Thanks for submitting...",
+                //    Wrap = true,
+                //    Size = TextSize.ExtraLarge,
+                //    Weight = TextWeight.Bolder
+                //});
+
+                //card.Body.Add(new TextBlock()
+                //{
+                //    Text = "Below are the details are under process...",
+                //    Wrap = true,
+                //    Size = TextSize.Large,
+                //    Weight = TextWeight.Bolder
+                //});
+
+                //card.Body.Add(new TextBlock() { Text = $"Employee Id: {scheduleInfo.EmployeeId}", Weight = TextWeight.Normal });
+                //card.Body.Add(new TextBlock() { Text = $"Subject: {scheduleInfo.Subject}", Weight = TextWeight.Normal });
+                //card.Body.Add(new TextBlock() { Text = $"Location: {scheduleInfo.Location}", Weight = TextWeight.Normal });
+                //card.Body.Add(new TextBlock() { Text = $"Start: {scheduleInfo.Start.Value.ToString("dd-MMM-yyyy hh:mm tt")}", Weight = TextWeight.Normal });
+                //card.Body.Add(new TextBlock() { Text = $"End: {scheduleInfo.End.Value.ToString("dd-MMM-yyyy hh:mm tt")}", Weight = TextWeight.Normal }); 
+                #endregion
+
+                string cardOutput = $"<b>Employee:</b> {scheduleInfo.EmployeeId}{Environment.NewLine}" +
+                    $"<b>Subject:</b> {scheduleInfo.Subject}{Environment.NewLine}" +
+                    $"<b>Location:</b> {scheduleInfo.Location}{Environment.NewLine}" +
+                    $"<b>Start:</b> {scheduleInfo.Start.ToString("dd-MMM-yyyy hh:mm tt")}{Environment.NewLine}" +
+                    $"<b>End:</b> {scheduleInfo.End.ToString("dd-MMM-yyyy hh:mm tt")}";
+
+                HeroCard plCard = new HeroCard()
                 {
-                    Text = "Thanks for submitting...",
-                    Wrap = true,
-                    Size = TextSize.ExtraLarge,
-                    Weight = TextWeight.Bolder
-                });
+                    Title = $"Thanks for submitting...",
+                    Subtitle = $"Details are under process...",
+                    Text = cardOutput
+                };
 
-                card.Body.Add(new TextBlock()
-                {
-                    Text = "Below are the details are under process...",
-                    Wrap = true,
-                    Size = TextSize.Large,
-                    Weight = TextWeight.Bolder
-                });
 
-                card.Body.Add(new TextBlock() { Text = $"Employee Id: {scheduleInfo.EmployeeId}", Weight = TextWeight.Normal });
-                card.Body.Add(new TextBlock() { Text = $"Subject: {scheduleInfo.Subject}", Weight = TextWeight.Normal });
-                card.Body.Add(new TextBlock() { Text = $"Location: {scheduleInfo.Location}", Weight = TextWeight.Normal });
-                card.Body.Add(new TextBlock() { Text = $"Start: {scheduleInfo.Start.ToString("dd-MMM-yyyy hh:mm tt")}", Weight = TextWeight.Normal });
-                card.Body.Add(new TextBlock() { Text = $"End: {scheduleInfo.End.ToString("dd-MMM-yyyy hh:mm tt")}", Weight = TextWeight.Normal });
-
-                message.Attachments.Add(new Attachment() { ContentType = AdaptiveCard.ContentType, Content = card }); 
+                message.Attachments.Add(plCard.ToAttachment());
                 #endregion
                 await context.PostAsync(message);
             }
