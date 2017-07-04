@@ -18,10 +18,10 @@ namespace MeetingRoomManagerLUIS.Models
         public string Location { get; set; }
 
         [Prompt("Enter meeting start time (MM/dd/yyyy HH:mm)")]
-        public DateTime Start { get; set; }
+        public DateTime? Start { get; set; }
 
         [Prompt("Enter meeting end time (MM/dd/yyyy HH:mm)")]
-        public DateTime End { get; set; }
+        public DateTime? End { get; set; }
 
         [Prompt("Enter meeting subject")]
         public string Subject { get; set; }

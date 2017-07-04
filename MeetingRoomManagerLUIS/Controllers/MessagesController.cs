@@ -45,6 +45,6 @@ namespace MeetingRoomManagerLUIS.Controllers
             return new HttpResponseMessage(HttpStatusCode.Accepted);
         }
 
-        
+
     }
 }

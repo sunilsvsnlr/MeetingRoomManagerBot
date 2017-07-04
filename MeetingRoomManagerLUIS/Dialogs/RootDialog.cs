@@ -46,6 +46,7 @@ namespace MeetingRoomManagerLUIS.Dialogs
                         break;
 
                     case "MeetingRoomManager":
+                        await context.PostAsync("Welcome to meeting room manager.");
                         context.Forward(new CreateSchedulerDialog(BuildForm), this.ResumeScheduler, context.Activity, CancellationToken.None);
                         break;
                 }

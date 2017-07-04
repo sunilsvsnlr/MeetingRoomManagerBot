@@ -44,11 +44,11 @@ namespace MeetingRoomManagerLUIS.Dialogs
                     {
                         case "Location":
                             scheduleInfo.Location = c.Entity;
-                            entityRecommendation.Add(new EntityRecommendation() { Type = "Location", Entity = scheduleInfo.Location });
+                            entityRecommendation.Add(new EntityRecommendation() { Type = c.Type, Entity = scheduleInfo.Location });
                             break;
                         case "Subject":
                             scheduleInfo.Subject = c.Entity;
-                            entityRecommendation.Add(new EntityRecommendation() { Type = "Subject", Entity = scheduleInfo.Subject });
+                            entityRecommendation.Add(new EntityRecommendation() { Type = c.Type, Entity = scheduleInfo.Subject });
                             break;
                         case "builtin.datetimeV2.datetime":
                         case "builtin.datetimeV2.date":
@@ -57,7 +57,7 @@ namespace MeetingRoomManagerLUIS.Dialogs
                             {
                                 scheduleInfo.Start = (DateTime)((Newtonsoft.Json.Linq.JArray)c.Resolution.Values.FirstOrDefault()).FirstOrDefault().SelectToken("value");
                                 entityRecommendation.Add(new EntityRecommendation() { Type = c.Type, Entity = scheduleInfo.Start.ToString() });
-                                //entityRecommendation.Add(new EntityRecommendation() { Type = "Start", Entity = scheduleInfo.Start.ToString() });
+                                entityRecommendation.Add(new EntityRecommendation() { Type = "Start", Entity = scheduleInfo.Start.ToString() });
                             }
                             break;
                         case "builtin.datetimeV2.duration":
@@ -65,6 +65,7 @@ namespace MeetingRoomManagerLUIS.Dialogs
                             if (((Newtonsoft.Json.Linq.JArray)c.Resolution.Values.FirstOrDefault()).FirstOrDefault().SelectToken("value") != null)
                             {
                                 duration = (long)((Newtonsoft.Json.Linq.JArray)c.Resolution.Values.FirstOrDefault()).FirstOrDefault().SelectToken("value");
+                                entityRecommendation.Add(new EntityRecommendation() { Type = c.Type, Entity = duration.ToString() });
                             }
                             break;
                         default:
@@ -74,10 +75,10 @@ namespace MeetingRoomManagerLUIS.Dialogs
 
                 if (duration > 0)
                 {
-                    scheduleInfo.Start = TimeZone.CurrentTimeZone.ToLocalTime(scheduleInfo.Start == DateTime.MinValue ? DateTime.Now : scheduleInfo.Start);
+                    scheduleInfo.Start = TimeZone.CurrentTimeZone.ToLocalTime(scheduleInfo.Start.HasValue ? DateTime.Now : scheduleInfo.Start.Value);
                     AddOrUpdateStartEntity(entityRecommendation, scheduleInfo);
-                    scheduleInfo.End = TimeZone.CurrentTimeZone.ToLocalTime(duration > 0 ? scheduleInfo.Start.AddSeconds(duration) : scheduleInfo.End);
-                    //entityRecommendation.Add(new EntityRecommendation() { Type = "End", Entity = scheduleInfo.End.ToString() });
+                    scheduleInfo.End = TimeZone.CurrentTimeZone.ToLocalTime(duration > 0 ? scheduleInfo.Start.Value.AddSeconds(duration) : scheduleInfo.End.Value);
+                    entityRecommendation.Add(new EntityRecommendation() { Type = "End", Entity = scheduleInfo.End.ToString() });
                 }
 
 
@@ -150,11 +151,11 @@ namespace MeetingRoomManagerLUIS.Dialogs
                 //card.Body.Add(new TextBlock() { Text = $"End: {scheduleInfo.End.Value.ToString("dd-MMM-yyyy hh:mm tt")}", Weight = TextWeight.Normal }); 
                 #endregion
 
-                string cardOutput = $"<b>Employee:</b> {scheduleInfo.EmployeeId}{Environment.NewLine}" +
-                    $"<b>Subject:</b> {scheduleInfo.Subject}{Environment.NewLine}" +
-                    $"<b>Location:</b> {scheduleInfo.Location}{Environment.NewLine}" +
-                    $"<b>Start:</b> {scheduleInfo.Start.ToString("dd-MMM-yyyy hh:mm tt")}{Environment.NewLine}" +
-                    $"<b>End:</b> {scheduleInfo.End.ToString("dd-MMM-yyyy hh:mm tt")}";
+                string cardOutput = $"Employee: {scheduleInfo.EmployeeId}{Environment.NewLine}" +
+                    $"Subject: {scheduleInfo.Subject}{Environment.NewLine}" +
+                    $"Location: {scheduleInfo.Location}{Environment.NewLine}" +
+                    $"Start: {scheduleInfo.Start.Value.ToString("dd-MMM-yyyy hh:mm tt")}{Environment.NewLine}" +
+                    $"End: {scheduleInfo.End.Value.ToString("dd-MMM-yyyy hh:mm tt")}";
 
                 HeroCard plCard = new HeroCard()
                 {
