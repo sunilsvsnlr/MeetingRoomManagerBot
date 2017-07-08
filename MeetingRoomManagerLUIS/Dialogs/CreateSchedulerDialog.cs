@@ -44,11 +44,11 @@ namespace MeetingRoomManagerLUIS.Dialogs
                     {
                         case "Location":
                             scheduleInfo.Location = c.Entity;
-                            entityRecommendation.Add(new EntityRecommendation() { Type = "Location", Entity = scheduleInfo.Location });
+                            entityRecommendation.Add(new EntityRecommendation() { Type = c.Type, Entity = scheduleInfo.Location });
                             break;
                         case "Subject":
                             scheduleInfo.Subject = c.Entity;
-                            entityRecommendation.Add(new EntityRecommendation() { Type = "Subject", Entity = scheduleInfo.Subject });
+                            entityRecommendation.Add(new EntityRecommendation() { Type = c.Type, Entity = scheduleInfo.Subject });
                             break;
                         case "builtin.datetimeV2.datetime":
                         case "builtin.datetimeV2.date":
@@ -56,6 +56,7 @@ namespace MeetingRoomManagerLUIS.Dialogs
                             if (((Newtonsoft.Json.Linq.JArray)c.Resolution.Values.FirstOrDefault()).FirstOrDefault().SelectToken("value") != null)
                             {
                                 scheduleInfo.Start = (DateTime)((Newtonsoft.Json.Linq.JArray)c.Resolution.Values.FirstOrDefault()).FirstOrDefault().SelectToken("value");
+                                entityRecommendation.Add(new EntityRecommendation() { Type = c.Type, Entity = scheduleInfo.Start.ToString() });
                                 entityRecommendation.Add(new EntityRecommendation() { Type = "Start", Entity = scheduleInfo.Start.ToString() });
                             }
                             break;
@@ -64,6 +65,7 @@ namespace MeetingRoomManagerLUIS.Dialogs
                             if (((Newtonsoft.Json.Linq.JArray)c.Resolution.Values.FirstOrDefault()).FirstOrDefault().SelectToken("value") != null)
                             {
                                 duration = (long)((Newtonsoft.Json.Linq.JArray)c.Resolution.Values.FirstOrDefault()).FirstOrDefault().SelectToken("value");
+                                entityRecommendation.Add(new EntityRecommendation() { Type = c.Type, Entity = duration.ToString() });
                             }
                             break;
                         default:
@@ -73,9 +75,9 @@ namespace MeetingRoomManagerLUIS.Dialogs
 
                 if (duration > 0)
                 {
-                    scheduleInfo.Start = TimeZone.CurrentTimeZone.ToLocalTime((scheduleInfo.Start == DateTime.MinValue) ? DateTime.Now : scheduleInfo.Start);
+                    scheduleInfo.Start = TimeZone.CurrentTimeZone.ToLocalTime(scheduleInfo.Start.HasValue ? DateTime.Now : scheduleInfo.Start.Value);
                     AddOrUpdateStartEntity(entityRecommendation, scheduleInfo);
-                    scheduleInfo.End = TimeZone.CurrentTimeZone.ToLocalTime(duration > 0 ? scheduleInfo.Start.AddSeconds(duration) : scheduleInfo.End);
+                    scheduleInfo.End = TimeZone.CurrentTimeZone.ToLocalTime(duration > 0 ? scheduleInfo.Start.Value.AddSeconds(duration) : scheduleInfo.End.Value);
                     entityRecommendation.Add(new EntityRecommendation() { Type = "End", Entity = scheduleInfo.End.ToString() });
                 }
 
@@ -86,7 +88,7 @@ namespace MeetingRoomManagerLUIS.Dialogs
             else
             {
                 await context.PostAsync("I'm sorry. I didn't understand you.");
-                context.Wait(MessageReceived);
+                context.Done<ScheduleInformation>(new ScheduleInformation());
             }
         }
 
@@ -110,56 +112,65 @@ namespace MeetingRoomManagerLUIS.Dialogs
             {
                 scheduleInfo = await result;
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex)
             {
-                await context.PostAsync("You cancelled the form.");
-                return;
+                await context.PostAsync(ex.Message);
+                await context.PostAsync("Form cancelled.");
+                context.Done<ScheduleInformation>(new ScheduleInformation());
             }
 
             if (scheduleInfo != null)
             {
-                //await context.PostAsync("Thanks for submitting. Below are the details are under process...");
-                //await context.PostAsync($"Employee Id: {scheduleInfo.EmployeeId}" +
-                //    $"{Environment.NewLine}Start: {scheduleInfo.Start} " +
-                //    $"{Environment.NewLine}End: {scheduleInfo.End} " +
-                //    $"{Environment.NewLine}Subject: {scheduleInfo.Subject}");
-
                 #region Adaptive Card to get rich output
                 IMessageActivity message = context.MakeMessage();
                 message.Attachments = new List<Attachment>();
 
-                AdaptiveCard card = new AdaptiveCard();
-                card.Body.Add(new TextBlock()
+                #region Skype wont support Adaptive Cards - For Ref: https://github.com/Microsoft/BotBuilder/issues/2803
+
+                //AdaptiveCard card = new AdaptiveCard();
+                //card.Body.Add(new TextBlock()
+                //{
+                //    Text = "Thanks for submitting...",
+                //    Wrap = true,
+                //    Size = TextSize.ExtraLarge,
+                //    Weight = TextWeight.Bolder
+                //});
+
+                //card.Body.Add(new TextBlock()
+                //{
+                //    Text = "Below are the details are under process...",
+                //    Wrap = true,
+                //    Size = TextSize.Large,
+                //    Weight = TextWeight.Bolder
+                //});
+
+                //card.Body.Add(new TextBlock() { Text = $"Employee Id: {scheduleInfo.EmployeeId}", Weight = TextWeight.Normal });
+                //card.Body.Add(new TextBlock() { Text = $"Subject: {scheduleInfo.Subject}", Weight = TextWeight.Normal });
+                //card.Body.Add(new TextBlock() { Text = $"Location: {scheduleInfo.Location}", Weight = TextWeight.Normal });
+                //card.Body.Add(new TextBlock() { Text = $"Start: {scheduleInfo.Start.Value.ToString("dd-MMM-yyyy hh:mm tt")}", Weight = TextWeight.Normal });
+                //card.Body.Add(new TextBlock() { Text = $"End: {scheduleInfo.End.Value.ToString("dd-MMM-yyyy hh:mm tt")}", Weight = TextWeight.Normal }); 
+                #endregion
+
+                string cardOutput = $"Employee: {scheduleInfo.EmployeeId}{Environment.NewLine}" +
+                    $"Subject: {scheduleInfo.Subject}{Environment.NewLine}" +
+                    $"Location: {scheduleInfo.Location}{Environment.NewLine}" +
+                    $"Start: {scheduleInfo.Start.Value.ToString("dd-MMM-yyyy hh:mm tt")}{Environment.NewLine}" +
+                    $"End: {scheduleInfo.End.Value.ToString("dd-MMM-yyyy hh:mm tt")}";
+
+                HeroCard plCard = new HeroCard()
                 {
-                    Text = "Thanks for submitting...",
-                    Wrap = true,
-                    Size = TextSize.ExtraLarge,
-                    Weight = TextWeight.Bolder
-                });
+                    Title = $"Thanks for submitting...",
+                    Subtitle = $"Details are under process...",
+                    Text = cardOutput
+                };
 
-                card.Body.Add(new TextBlock()
-                {
-                    Text = "Below are the details are under process...",
-                    Wrap = true,
-                    Size = TextSize.Large,
-                    Weight = TextWeight.Bolder
-                });
 
-                card.Body.Add(new TextBlock() { Text = $"Employee Id: {scheduleInfo.EmployeeId}", Weight = TextWeight.Normal });
-                card.Body.Add(new TextBlock() { Text = $"Subject: {scheduleInfo.Subject}", Weight = TextWeight.Normal });
-                card.Body.Add(new TextBlock() { Text = $"Location: {scheduleInfo.Location}", Weight = TextWeight.Normal });
-                card.Body.Add(new TextBlock() { Text = $"Start: {scheduleInfo.Start.ToString("dd-MMM-yyyy hh:mm tt")}", Weight = TextWeight.Normal });
-                card.Body.Add(new TextBlock() { Text = $"End: {scheduleInfo.End.ToString("dd-MMM-yyyy hh:mm tt")}", Weight = TextWeight.Normal });
-
-                message.Attachments.Add(new Attachment() { ContentType = AdaptiveCard.ContentType, Content = card }); 
+                message.Attachments.Add(plCard.ToAttachment());
                 #endregion
                 await context.PostAsync(message);
             }
-            else
-            {
-                await context.PostAsync("Empty Schedule form response.");
-            }
-            context.Wait(MessageReceived);
+            //context.Wait(MessageReceived);
+            context.Done<ScheduleInformation>(scheduleInfo);
         }
     }
 }

@@ -11,6 +11,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web.Http;
+using MeetingRoomManagerLUIS.Extensions;
 
 namespace MeetingRoomManagerLUIS.Controllers
 {
@@ -29,7 +30,8 @@ namespace MeetingRoomManagerLUIS.Controllers
                 switch (activity.GetActivityType())
                 {
                     case ActivityTypes.Message:
-                        await Conversation.SendAsync(activity, MakeRoot);
+                        await Conversation.SendAsync(activity, () => new RootDialog());
+                        //await Conversation.SendAsync(activity, MakeRoot);
                         break;
                     case ActivityTypes.ConversationUpdate:
                     case ActivityTypes.ContactRelationUpdate:
@@ -43,53 +45,6 @@ namespace MeetingRoomManagerLUIS.Controllers
             return new HttpResponseMessage(HttpStatusCode.Accepted);
         }
 
-        private static IForm<ScheduleInformation> BuildForm()
-        {
-            var builder = new FormBuilder<ScheduleInformation>();
-            return builder
-                .AddRemainingFields()
-                .Field("Location", validate: ValidateLocation)
-                .Field("Start", validate: ValidateStart)
-                .Field("End", validate: ValidateEnd)
-                .Build();
-        }
 
-        internal static IDialog<ScheduleInformation> MakeRoot()
-        {
-            return Chain.From(() => new CreateSchedulerDialog(BuildForm));
-        }
-
-        private static Task<ValidateResult> ValidateLocation(ScheduleInformation state, object response)
-        {
-            string typedText = (string)response;
-            var result = new ValidateResult { IsValid = false, Value = typedText };
-            result.IsValid = (!string.IsNullOrEmpty(typedText) && ValidateLocation(typedText));
-            result.Feedback = result.IsValid ? string.Empty : $"{typedText} is not a conference room option.";
-            return Task.FromResult(result);
-        }
-
-        private static Task<ValidateResult> ValidateStart(ScheduleInformation state, object response)
-        {
-            DateTime typedText = (DateTime)response;
-            var result = new ValidateResult { IsValid = false, Value = typedText };
-            result.IsValid = (!typedText.Date.Equals(DateTime.MinValue.Date) && typedText > DateTime.Now.AddMinutes(-15));
-            result.Feedback = result.IsValid ? string.Empty : $"{typedText} must be greater than current date.";
-            return Task.FromResult(result);
-        }
-
-        private static Task<ValidateResult> ValidateEnd(ScheduleInformation state, object response)
-        {
-            DateTime typedText = (DateTime)response;
-            var result = new ValidateResult { IsValid = false, Value = typedText };
-            result.IsValid = (!typedText.Date.Equals(DateTime.MinValue.Date) && typedText > DateTime.Now && typedText > state.Start);
-            result.Feedback = result.IsValid ? string.Empty :$"{typedText} must be greater than current or start date.";
-            return Task.FromResult(result);
-        }
-
-        private static bool ValidateLocation(string location)
-        {
-            return (location.Equals("conf1", StringComparison.InvariantCultureIgnoreCase) || location.Equals("conf2", StringComparison.InvariantCultureIgnoreCase)
-                || location.Equals("conf3", StringComparison.InvariantCultureIgnoreCase) || location.Equals("conf4", StringComparison.InvariantCultureIgnoreCase));
-        }
     }
 }
