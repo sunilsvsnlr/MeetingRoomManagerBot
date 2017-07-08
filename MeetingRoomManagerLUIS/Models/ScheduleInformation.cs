@@ -9,9 +9,9 @@ namespace MeetingRoomManagerLUIS.Models
     [Serializable]
     public class ScheduleInformation
     {
-        [Prompt("What is your {&}? {||}")]
-        [Describe("Employee Id")]
-        public string EmployeeId { get; set; }
+        [Prompt("Enter your {&}? {||}")]
+        [Describe("User Name")]
+        public string UserName { get; set; }
 
         [Prompt("Where you would like to book at (Type {&})? {||}")]
         [Describe("Conference room")]
@@ -24,6 +24,7 @@ namespace MeetingRoomManagerLUIS.Models
         public DateTime? End { get; set; }
 
         [Prompt("Enter meeting subject")]
+        [Optional]
         public string Subject { get; set; }
     }
 }

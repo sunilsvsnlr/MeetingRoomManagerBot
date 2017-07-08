@@ -10,6 +10,9 @@ using MeetingRoomManagerLUIS.Extensions;
 using Microsoft.Bot.Builder.Luis.Models;
 using Microsoft.Bot.Connector;
 using System.Threading;
+using Microsoft.Bot.Builder.FormFlow.Advanced;
+using MeetingRoomManagerLUIS.Output;
+using MeetingRoomManagerLUIS.Services;
 
 namespace MeetingRoomManagerLUIS.Dialogs
 {
@@ -47,7 +50,7 @@ namespace MeetingRoomManagerLUIS.Dialogs
 
                     case "MeetingRoomManager":
                         await context.PostAsync("Welcome to meeting room manager.");
-                        context.Forward(new CreateSchedulerDialog(BuildForm), this.ResumeScheduler, context.Activity, CancellationToken.None);
+                        context.Forward(new CreateSchedulerDialog(BuildForm, BuildViewForm), this.ResumeScheduler, context.Activity, CancellationToken.None);
                         break;
                 }
             }
@@ -78,15 +81,36 @@ namespace MeetingRoomManagerLUIS.Dialogs
             var builder = new FormBuilder<ScheduleInformation>();
             return builder
                 .AddRemainingFields()
+                 //.Field(new FieldReflector<ScheduleInformation>("Location")
+                 //   .SetType(null)
+                 //   .SetValidate(ScheduleInfoValidations.ValidateLocation)
+                 //   .SetDefine((state, field) =>
+                 //   {
+                 //       string errorMessage = string.Empty;
+                 //       List<Rooms> lstRooms = new MRBSDataServices().GetRooms(out errorMessage);
+                 //       lstRooms.ForEach(c =>
+                 //       {
+                 //           field.AddDescription(c.SORT_KEY, c.SORT_KEY).AddTerms(c.SORT_KEY, c.SORT_KEY);
+                 //       });
+                 //       return Task.FromResult(true);
+                 //   }))
                 .Field("Location", validate: ScheduleInfoValidations.ValidateLocation)
                 .Field("Start", validate: ScheduleInfoValidations.ValidateStart)
                 .Field("End", validate: ScheduleInfoValidations.ValidateEnd)
                 .Build();
         }
 
+        private static IForm<ViewInfo> BuildViewForm()
+        {
+            var builder = new FormBuilder<ViewInfo>();
+            return builder
+                .AddRemainingFields()
+                .Build();
+        }
+
         internal static IDialog<ScheduleInformation> MakeRoot()
         {
-            return Chain.From(() => new CreateSchedulerDialog(BuildForm));
+            return Chain.From(() => new CreateSchedulerDialog(BuildForm, BuildViewForm));
         }
     }
 }
